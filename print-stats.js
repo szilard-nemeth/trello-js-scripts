@@ -71,6 +71,10 @@ function getCardTitle(JQCard) {
 
 //--main functions
 
+function getAllCardData(JQCard) {
+
+}
+
 function getCardsOfList(list) {
 	//example: $(".js-list-content h2:contains('QUEUE 2')")
 	var jqList = $(".js-list h2:contains('" + list + "')").parent();
@@ -165,8 +169,8 @@ function getFilteredCardsOfList(list, filter) {
 			resultMap.forEach(function(value, key) { 
 				console.log("Cards in list " + key + ': \n' +  value.get(filter).join(", \n")); });
 			return resultMap.get(filter);
-		} else if (/title=\w+/.test(filter)) {
-			var res = filter.match(/title=(\w+)/i)
+		} else if (/title=.*/.test(filter)) {
+			var res = filter.match(/title=(.*)/i)
 			// console.log("Regex result: ", res)
 			var filterTitle = res[1]
 
