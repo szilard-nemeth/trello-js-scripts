@@ -22,12 +22,51 @@ function _getCardTitlesByCards(cards) {
 	return cards.map(function(){ return $(this).justtext(); }).get();
 }
 
+function _getJQCardsByTitle(resultMap, list, title) {
+	if (title == undefined) {
+		throw "Title should be specified!"
+	}
+
+	//returns: Map of <list name>, <list of cards matching title>
+	var res = new Map()
+
+	var allJQCards = resultMap
+	if (list != undefined) {
+		var allJQCards = resultMap.get(list).get("cards")
+	}
+	
+	
+	for (var [cardTitle, JQCards] of allJQCards) {
+		// console.log("cardtitle: ", cardTitle)
+		// console.log("card objects: ", JQCards)
+
+		if (cardTitle === title) {
+			if (JQCards.length > 1) {
+				console.warn("More than 1 card found for title: ", title)
+			}
+			if (!res.has(list)) {
+				res.set(list, [])
+			}
+			res.get(list).push(JQCards)
+			
+		}
+	}
+	if (res.size == 0) {
+		console.warn("No items found!")
+	}
+	return res;
+}
+
 function getCardTitles(list) {
 	return _getCardTitlesByCards(getCardsOfList(list));
 }
 
 function getCardTitle(JQCard) {
-	return _getCardTitlesByCards(JQCard.find('.list-card-title'));
+	var titles = _getCardTitlesByCards(JQCard.find('.list-card-title').not('.js-composer'));
+	if (titles.length > 1) {
+		throw "Should have one card title for one card but had " + titles.length + "!"
+	}
+	return titles[0]
 }
 
 //--main functions
@@ -59,21 +98,24 @@ function getCardsOfList(list) {
 }
 
 function getCardsOfListInternal(jqList) {
-	var jqListCards = jqList.siblings('.list-cards').find('.list-card')
+	var jqListCards = jqList.siblings('.list-cards').find('.list-card').not('.js-composer')
 	var numberOfCards = jqListCards.length;
 	//console.log("Number of cards found: " + numberOfCards)
 
 	var resultMap = new Map([ 
-		["has_description", []], 
-		["has_checklist", []], 
-		["has_due_date", []], 
-		["just_title", []], 
-		["num_of_cards", 0],
-		["cards", new Map()] ]); //JQ cards by title, can have multiple cards
+		["has_description", []], //card titles that have description
+		["has_checklist", []], //card titles that have checklist
+		["has_due_date", []], //card titles that have due date
+		["just_title", []], //card titles that just have a title
+		["num_of_cards", 0], //number of cards
+		["cards", new Map()] ]); //JQ cards by title, can have multiple cards for one title
 
 	jqListCards.each(function(index) {
 		card = $(this);
 		var cardTitle = getCardTitle(card);
+		if (cardTitle === undefined) {
+			throw "Card title should not be undefined!"
+		}
 		// console.log("card: " + card)
 		// console.log("has icon: " + card.has(".icon-description").length);
 		// console.log("has desc: " + card.has(".icon-checklist").length);
@@ -86,6 +128,7 @@ function getCardsOfListInternal(jqList) {
 		resultMap.set("num_of_cards", jqListCards.length)
 
 		if (!resultMap.get("cards").has(cardTitle)) {
+			// console.log("cardtitle: ", cardTitle)
 			resultMap.get("cards").set(cardTitle, []);
 		}
 		resultMap.get("cards").get(cardTitle).push(card);
@@ -105,6 +148,7 @@ function getCardsOfListInternal(jqList) {
 		}
 	});
 
+	console.log("getCardsOfListInternal.RESULT: ", resultMap)	
 	return resultMap;
 }
 
@@ -121,7 +165,19 @@ function getFilteredCardsOfList(list, filter) {
 			resultMap.forEach(function(value, key) { 
 				console.log("Cards in list " + key + ': \n' +  value.get(filter).join(", \n")); });
 			return resultMap.get(filter);
+		} else if (/title=\w+/.test(filter)) {
+			var res = filter.match(/title=(\w+)/i)
+			// console.log("Regex result: ", res)
+			var filterTitle = res[1]
+
+			//TODO add functionality: filter by multiple titles, e.g.' 'title=title1,title2'
+			//TODO naive approach, there can be multiple lists here
+
+			var filteredCards = _getJQCardsByTitle(resultMap, list, filterTitle)
+			// console.log("Filtered cards by title: ", filteredCards)
+			return filteredCards;
 		} else {
+			console.warn("Filter not matched!")
 			//TODO throw exception
 		}
 	} else {
@@ -160,7 +216,7 @@ function printStats() {
 	listsWithZeroCards = []
 	lists.forEach(function(l) {
 		var cardsMap = getCardsOfList(l);
-		// console.log("CARDSMAP: ", cardsMap)
+		console.log("CARDSMAP: ", cardsMap)
 		if (cardsMap == undefined || cardsMap.values() == undefined) {
 			console.error("Cards are undefined for list " + l + "! This is most likely a programming error!")
 			console.log("Dumping data...")
