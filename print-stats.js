@@ -22,19 +22,31 @@ function _getCardTitlesByCards(cards) {
 	return cards.map(function(){ return $(this).justtext(); }).get();
 }
 
-function _getJQCardsByTitle(resultMap, list, title) {
+function _getJQCardsByTitle(resultMap, list, title, includeListInResult = false) {
 	if (title == undefined) {
 		throw "Title should be specified!"
 	}
 
-	//returns: Map of <list name>, <list of cards matching title>
-	var res = new Map()
-
 	var allJQCards = resultMap
 	if (list != undefined) {
+		console.log("Filtering cards by list: ", list)
 		var allJQCards = resultMap.get(list).get("cards")
+	} else {
+		if (!includeListInResult) {
+			console.log("Overriding includeListInResult, as multiple lists are found!")	
+			includeListInResult = true;
+		}
 	}
-	
+
+	//returns: either
+	//1. Map of <list name>, <list of cards matching title>, if includeListInResult = true
+	//2. Array of <list of cards matching title>, if includeListInResult = false
+	var res;
+	if (includeListInResult) {
+		res = new Map()
+	} else {
+		res = []
+	}
 	
 	for (var [cardTitle, JQCards] of allJQCards) {
 		// console.log("cardtitle: ", cardTitle)
@@ -44,11 +56,14 @@ function _getJQCardsByTitle(resultMap, list, title) {
 			if (JQCards.length > 1) {
 				console.warn("More than 1 card found for title: ", title)
 			}
-			if (!res.has(list)) {
-				res.set(list, [])
+			if (includeListInResult) {
+				if (!res.has(list)) {
+					res.set(list, [])
+				}
+				res.get(list).push(JQCards)	
+			} else {
+				res = res.concat(JQCards)
 			}
-			res.get(list).push(JQCards)
-			
 		}
 	}
 	if (res.size == 0) {
@@ -72,7 +87,139 @@ function getCardTitle(JQCard) {
 //--main functions
 
 function getAllCardData(JQCard) {
+	//Saves the following data for a card:
+	// - Labels
+	// - Description
+	// - Checklists
+	// - Due date
+	// - History
+	// - Comments
 
+	var someCardIsVisible = $(".window-wrapper").is(':visible')
+	var title = getCardTitle(JQCard)
+	var windowTitle = $(".window-title h2").text()
+	var closeCardButton = $(".dialog-close-button")
+
+	//We have a different card open, close it, then open the desired card
+	if (someCardIsVisible && title != windowTitle) {
+		closeCardButton.trigger("click")
+		JQCard.trigger("click")
+	}
+
+	//Only open card if it's not visible yet
+	if (!someCardIsVisible) {
+		JQCard.trigger("click")
+	}
+
+	
+	//Prerequisite: Open all menus
+	var showCheckedItemsButton = $(".js-show-checked-items")
+	console.log("showCheckedItemsButton.text()", showCheckedItemsButton.text())
+	if (showCheckedItemsButton.text().includes("Show checked items")) {
+		showCheckedItemsButton.trigger("click")
+	}
+
+	var showDetailsButton = $(".js-show-details")
+	console.log("showDetailsButton.text()", showDetailsButton.text())
+	if (showDetailsButton.text().includes("Show Details")) {
+		showDetailsButton.trigger("click")
+	}
+
+	var cardOverlay = $(".window")
+
+	//TODO is there any cleaner solution than wrapping a huge block of code into setTimeout?
+	console.log("BEFORE PROMISE")
+	let promise = new Promise((resolve, reject) => {
+		window.setTimeout(function() {
+			//re-init close button: If card was not open, it's too early to catch the button before card is loaded
+			closeCardButton = $(".dialog-close-button")
+		
+			//TODO this must have been equivalent, but did not work
+			//var labels = JQCard.find(".card-label span").map(e => $(e.text()).get()
+			var labels = cardOverlay.find(".card-label span").map(function(){ return $(this).text(); }).get();
+			var description = cardOverlay.find(".js-desc p").html()
+			
+			//Save checklists
+			var checklistObjects = []
+			var checklists = cardOverlay.find(".checklist")
+			checklists.each((i, cl) => {
+				var checklistObject = new Object()
+				checklistObject.title = $(cl).find('.checklist-title h3').map(function(){ return $(this).text(); }).get()[0]
+				checklistObject.items = []
+				
+				$(cl).find(".checklist-item").each(
+					(i, clItem) => checklistObject.items.push(
+						{ "value": $(clItem).find(".checklist-item-details-text").text(),
+						  "checked": $(clItem).hasClass("checklist-item-state-complete")
+						}) 
+				) 
+				
+				checklistObjects.push(checklistObject)
+			})
+
+
+			cardOverlay.find('.checklist-title h3').map(function(){ return $(this).text(); }).get();
+			
+
+			//Save Due date
+			var dueDate = $(".card-detail-due-date-badge")
+			if (dueDate.length > 0) {
+				dueDate = dueDate.find(".card-detail-due-date-text").text()
+			}
+
+			//Save activity history
+			var historyObjects = []
+			var historyItems = cardOverlay.find('.mod-attachment-type')
+			historyItems.each((i, h) => {
+				historyObjects.push({
+					"author": $(h).find('.inline-member').text(),
+					"date": $($(h).find('.phenom-meta.quiet a')).attr("title"),
+					"activity": $(h).find('.phenom-desc').justtext(),
+				})
+			})
+
+			//$(cardOverlay.find('.mod-attachment-type')[0]).find(".inline-member").text()
+			//$(cardOverlay.find('.mod-attachment-type')[0]).find(".phenom-meta.quiet a").text()
+
+			//Save comments
+			var commentObjects = []
+			var comments = cardOverlay.find('.mod-comment-type')
+			comments.each((i, c) => {
+				commentObjects.push({
+					"author": $(c).find('.inline-member').text(),
+					"date": $($(c).find('.phenom-date a')).attr("title"),
+					"comment": $(c).find('.comment-container .current-comment p').text(),
+				})
+			})
+
+			// $(cardOverlay.find('.mod-comment-type')[0]).find('.inline-member').text()
+			// $($(cardOverlay.find('.mod-comment-type')[0]).find('.phenom-date a')).attr("title")
+			// $(cardOverlay.find('.mod-comment-type')[0]).find('.comment-container .current-comment p').text()
+
+
+			var cardObject = new Object();
+			cardObject.labels = labels
+			cardObject.dueDate = dueDate
+			cardObject.description = description
+			cardObject.checklists = checklistObjects
+			cardObject.activityHistory = historyObjects
+			cardObject.comments = commentObjects
+
+			closeCardButton.trigger("click")
+
+			resolve(cardObject);
+		}, 2000);
+    });
+    console.log("after PROMISE")
+
+    promise.then(function(val) {
+		console.log("RESULT OF PROMISE: ", val)
+		return val
+    }).catch((reason) => {
+    	console.log('Handle rejected promise ('+reason+') here.');
+	});
+
+    console.log("RETURN")
 }
 
 function getCardsOfList(list) {
