@@ -63,10 +63,17 @@ function getCardsOfListInternal(jqList) {
 	var numberOfCards = jqListCards.length;
 	//console.log("Number of cards found: " + numberOfCards)
 
-	var resultMap = new Map([ ["has_description", []], ["has_checklist", []], ["has_due_date", []], ["just_title", []], ["num_of_cards", 0] ]);
+	var resultMap = new Map([ 
+		["has_description", []], 
+		["has_checklist", []], 
+		["has_due_date", []], 
+		["just_title", []], 
+		["num_of_cards", 0],
+		["cards", new Map()] ]); //JQ cards by title, can have multiple cards
 
 	jqListCards.each(function(index) {
 		card = $(this);
+		var cardTitle = getCardTitle(card);
 		// console.log("card: " + card)
 		// console.log("has icon: " + card.has(".icon-description").length);
 		// console.log("has desc: " + card.has(".icon-checklist").length);
@@ -78,18 +85,23 @@ function getCardsOfListInternal(jqList) {
 		
 		resultMap.set("num_of_cards", jqListCards.length)
 
+		if (!resultMap.get("cards").has(cardTitle)) {
+			resultMap.get("cards").set(cardTitle, []);
+		}
+		resultMap.get("cards").get(cardTitle).push(card);
+
 		if (hasDesc) {
-			resultMap.get("has_description").push(getCardTitle(card));
+			resultMap.get("has_description").push(cardTitle);
 		}
 		if (hasChecklist) {
-			resultMap.get("has_checklist").push(getCardTitle(card));
+			resultMap.get("has_checklist").push(cardTitle);
 		}
 		if (hasDue) {
-			resultMap.get("has_due_date").push(getCardTitle(card));
+			resultMap.get("has_due_date").push(cardTitle);
 		}
 
 		if (!hasDesc && ! hasChecklist) {
-			resultMap.get("just_title").push(getCardTitle(card));
+			resultMap.get("just_title").push(cardTitle);
 		}
 	});
 
@@ -160,7 +172,7 @@ function printStats() {
 		} else {
 			for (var [listName, listStats] of cardsMap.entries()) {
 				// console.log("LIST STATS: ", listStats)
-	  			if (Array.from(listStats.values()).every(x =>  x == 0)) {
+	  			if (listStats.get("num_of_cards") == 0) {
 					listsWithZeroCards.push(listName);
 				} else {
 					summary = summary.concat(getStatsString(cardsMap) + "\n\n");	
