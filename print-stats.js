@@ -9,6 +9,7 @@ jQuery.fn.justtext = function() {
 
 };
 
+//--helper functions
 function getListsJQ() {
 	return $('.js-list-content');
 }
@@ -17,14 +18,19 @@ function getLists() {
 	return $('.js-list-content .list-header-name-assist').map(function(){ return $(this).text(); }).get();	
 }
 
+function _getCardTitlesByCards(cards) {
+	return cards.map(function(){ return $(this).justtext(); }).get();
+}
+
 function getCardTitles(list) {
-	return getCardsOfList(list).map(function(){ return $(this).justtext(); }).get();
+	return _getCardTitlesByCards(getCardsOfList(list));
 }
 
-function getCardTitle(card) {
-	return card.find('.list-card-title').map(function(){ return $(this).justtext(); }).get();
+function getCardTitle(JQCard) {
+	return _getCardTitlesByCards(JQCard.find('.list-card-title'));
 }
 
+//--main functions
 
 function getCardsOfList(list) {
 	//example: $(".js-list-content h2:contains('QUEUE 2')")
@@ -50,7 +56,6 @@ function getCardsOfList(list) {
 
 	// console.log("Returning resultmap: ", resultMap)
 	return resultMap;
-
 }
 
 function getCardsOfListInternal(jqList) {
@@ -103,7 +108,7 @@ function getFilteredCardsOfList(list, filter) {
 			filter == "num_of_cards") {
 			resultMap.forEach(function(value, key) { 
 				console.log("Cards in list " + key + ': \n' +  value.get(filter).join(", \n")); });
-			return resultMap.get("has_description");
+			return resultMap.get(filter);
 		} else {
 			//TODO throw exception
 		}
