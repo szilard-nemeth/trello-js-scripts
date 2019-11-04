@@ -1,4 +1,14 @@
 //Source: https://www.viralpatel.net/jquery-get-text-element-without-child-element/
+
+
+//TMP commands
+// var card = getFilteredCardsOfList("DONE", "title=Balint: 4500 egerpadra")[0]
+// getAllCardData(card)
+// var cardOverlay = $(".window")
+// cardOverlay.find('.mod-comment-type').length
+// getAllDataOfCardsInList('DONE')
+var GLOBALRESULT = []
+
 jQuery.fn.justtext = function() {
   
 	return $(this).clone() //clone the element
@@ -86,7 +96,39 @@ function getCardTitle(JQCard) {
 
 //--main functions
 
-function getAllCardData(JQCard) {
+function getAllDataOfCardsInList(listName) {
+	var resultMap = getCardsOfList(listName);
+
+	//Could be in this format
+	//Entries:
+	// 0: {"t1" => Array(card1, card2)}
+	// 1: {"t2" => Array(card1, card2, card3)}
+
+
+	//TODO save all data to localstorage: https://stackoverflow.com/questions/28918232/how-do-i-persist-a-es6-map-in-localstorage-or-elsewhere
+	localStorage.setItem("cardQuery", "")
+	var cardsByName = resultMap.get(listName).get("cards")
+
+	var numberOfCards = Array.from(cardsByName.values()).map()
+
+	//TODO store number of items and pass to getAllCardData
+	var globalIdx = 0
+	for (var cardName of cardsByName.keys()) {
+		var cards = cardsByName.get(cardName)
+		cards.forEach(function(card, idx) {
+			// console.log("that ", that)
+			console.log("card ", card)
+			console.log("idx ", globalIdx)
+			setTimeout(function() { 
+	        	console.log("Saving all data from card: " + getCardTitle(card))
+	        	getAllCardData(card, globalIdx)
+	        }, 3000 * globalIdx);
+	    	globalIdx++
+		})
+	}
+}
+
+function getAllCardData(JQCard, globalIdx) {
 	//Saves the following data for a card:
 	// - Labels
 	// - Description
@@ -96,9 +138,15 @@ function getAllCardData(JQCard) {
 	// - Comments
 
 	var someCardIsVisible = $(".window-wrapper").is(':visible')
-	var title = getCardTitle(JQCard)
-	var windowTitle = $(".window-title h2").text()
-	var closeCardButton = $(".dialog-close-button")
+	var title
+	var windowTitle
+	var closeCardButton
+	
+	if (someCardIsVisible) {
+		title = getCardTitle(JQCard)
+		windowTitle = $(".window-title h2").text()
+		closeCardButton = $(".dialog-close-button")
+	}
 
 	//We have a different card open, close it, then open the desired card
 	if (someCardIsVisible && title != windowTitle) {
@@ -111,16 +159,20 @@ function getAllCardData(JQCard) {
 		JQCard.trigger("click")
 	}
 
-	
+	//re-init variables
+	title = getCardTitle(JQCard)
+	windowTitle = $(".window-title h2").text()
+	closeCardButton = $(".dialog-close-button")
+
 	//Prerequisite: Open all menus
 	var showCheckedItemsButton = $(".js-show-checked-items")
-	console.log("showCheckedItemsButton.text()", showCheckedItemsButton.text())
+	// console.log("showCheckedItemsButton.text()", showCheckedItemsButton.text())
 	if (showCheckedItemsButton.text().includes("Show checked items")) {
 		showCheckedItemsButton.trigger("click")
 	}
 
 	var showDetailsButton = $(".js-show-details")
-	console.log("showDetailsButton.text()", showDetailsButton.text())
+	// console.log("showDetailsButton.text()", showDetailsButton.text())
 	if (showDetailsButton.text().includes("Show Details")) {
 		showDetailsButton.trigger("click")
 	}
@@ -128,7 +180,7 @@ function getAllCardData(JQCard) {
 	var cardOverlay = $(".window")
 
 	//TODO is there any cleaner solution than wrapping a huge block of code into setTimeout?
-	console.log("BEFORE PROMISE")
+	// console.log("BEFORE PROMISE")
 	let promise = new Promise((resolve, reject) => {
 		window.setTimeout(function() {
 			//re-init close button: If card was not open, it's too early to catch the button before card is loaded
@@ -165,6 +217,8 @@ function getAllCardData(JQCard) {
 			var dueDate = $(".card-detail-due-date-badge")
 			if (dueDate.length > 0) {
 				dueDate = dueDate.find(".card-detail-due-date-text").text()
+			} else {
+				dueDate = null
 			}
 
 			//Save activity history
@@ -198,6 +252,7 @@ function getAllCardData(JQCard) {
 
 
 			var cardObject = new Object();
+			cardObject.title = title
 			cardObject.labels = labels
 			cardObject.dueDate = dueDate
 			cardObject.description = description
@@ -210,16 +265,23 @@ function getAllCardData(JQCard) {
 			resolve(cardObject);
 		}, 2000);
     });
-    console.log("after PROMISE")
+    // console.log("after PROMISE")
 
-    promise.then(function(val) {
-		console.log("RESULT OF PROMISE: ", val)
-		return val
+    promise.then(function(cardObj) {
+    	console.log("RESULT OF PROMISE: ", cardObj)
+    	GLOBALRESULT.push(cardObj)
+    	//TODO checkpointing (save on every 20 elements)
+    	if (globalIdx == 236) {
+    		window.localStorage.setItem('globalresult') = JSON.stringify(GLOBALRESULT);
+    		//READ: map = new Map(JSON.parse(localStorage.globalresult));
+    	}
+		// console.log("RESULT OF PROMISE: ", getCardTitle(JQCard))
+		return JQCard
     }).catch((reason) => {
     	console.log('Handle rejected promise ('+reason+') here.');
 	});
 
-    console.log("RETURN")
+    // console.log("RETURN")
 }
 
 function getCardsOfList(list) {
@@ -299,13 +361,13 @@ function getCardsOfListInternal(jqList) {
 		}
 	});
 
-	console.log("getCardsOfListInternal.RESULT: ", resultMap)	
+	// console.log("getCardsOfListInternal.RESULT: ", resultMap)	
 	return resultMap;
 }
 
 function getFilteredCardsOfList(list, filter) {
 	var resultMap = getCardsOfList(list);
-	console.log("getFilteredCardsOfList.resultMap: ", resultMap)
+	// console.log("getFilteredCardsOfList.resultMap: ", resultMap)
 
 	if (filter != null) {
 		if (filter === "has_description" || 
