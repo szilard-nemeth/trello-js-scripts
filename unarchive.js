@@ -31,8 +31,8 @@ function sendArchivedCardsToBoardInt() {
 	            var t = setTimeout(function() { 
 	            	console.log("Clicking item with index: " + i);
 	            	console.log("Clicking item: " + that)
-	                //$(that).click()
-	            }, 500 * i);
+	                $(that).click()
+	            }, 1000 * i);
 	        })(this, index);
 	    });
 }

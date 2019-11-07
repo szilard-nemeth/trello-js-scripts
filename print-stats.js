@@ -2,11 +2,21 @@
 
 
 //TMP commands
+
+//////Get all data of specific cards
 // var card = getFilteredCardsOfList("DONE", "title=Balint: 4500 egerpadra")[0]
 // getAllCardData(card)
+
+/////Find card overlay
 // var cardOverlay = $(".window")
 // cardOverlay.find('.mod-comment-type').length
-// getAllDataOfCardsInList('DONE')
+
+/////Get all cards from list "DONE" and format them
+// getAllDataOfCardsInList('DONE');var arr = JSON.parse(localStorage.getItem('globalresult'));formatCardsAsHtml();
+// formatCardsAsHtml()
+
+//Add property to cards: 
+////GLOBALRESULT.forEach(c => c.justTitle = (c.checklists.length == 0) && (c.description == null || c.description == undefined))
 var GLOBALRESULT = []
 
 jQuery.fn.justtext = function() {
@@ -18,6 +28,13 @@ jQuery.fn.justtext = function() {
 			.text(); //get the text of element
 
 };
+
+function _formatDate() {
+	var d = new Date();
+
+	return d.getDate()  + "-" + (d.getMonth()+1) + "-" + d.getFullYear() + " " +
+	d.getHours() + ":" + d.getMinutes() + ":" + d.getSeconds();
+}
 
 //--helper functions
 function getListsJQ() {
@@ -96,7 +113,131 @@ function getCardTitle(JQCard) {
 
 //--main functions
 
+//TODO Add function: Delete cards in list!!
+
+function formatCardsAsHtml() {
+	function dynamicSort(property) {
+	    var sortOrder = 1;
+	    if(property[0] === "-") {
+	        sortOrder = -1;
+	        property = property.substr(1);
+	    }
+	    return function (a,b) {
+	        /* next line works with strings and numbers, 
+	         * and you may want to customize it to your needs
+	         */
+	        var result = (a[property] < b[property]) ? -1 : (a[property] > b[property]) ? 1 : 0;
+	        return result * sortOrder;
+	    }
+	}
+
+	var html = ""
+	//TODO order global result by: 
+	//just title first
+	//due date
+	//title
+	//
+
+	var sortedCards = GLOBALRESULT.sort(dynamicSort("-justTitle"));
+	sortedCards.forEach(card => html = html.concat(formatCardAsHtml(card).concat("<br><br>")))
+	console.log(html)
+}
+
+function formatCardAsHtml(card) {
+	var indent = "&nbsp;&nbsp;&nbsp;&nbsp;"
+
+	function formatPlainTextDescription(desc) {
+		//TODO add indent to beginning, add indent after last <br> as well
+		if (desc == null || desc == undefined) {
+			return null
+		}
+		console.log("Original description: ", desc)
+		desc = indent + desc.replace(/<br\s*\/?>/gi, "<br>" + indent)
+		console.log("Modified description: ", desc)
+		return desc
+	}
+
+	function formatComment(commentObj) {
+		return indent.repeat(2) + commentObj.author + ": " + commentObj.comment + " (" + commentObj.date + ")"
+	}
+
+	function formatActivity(act) {
+		return indent.repeat(2) + act.author + ": " + act.activity + " (" + act.date + ")"
+	}
+
+	function formatChecklist(checklist) {
+		return `<p class="checklist">${checklist.items.map(ci => 
+			`${indent.repeat(3)}${ci.checked ? '[x]' : '[]'}${ci.value}<br>`).join('')}<br>`
+	}
+
+	function formatChecklists(checklists) {
+		return `<p class="checklists">${card.checklists.map(cl => `<b>${indent.repeat(2)}${cl.title}</b>${formatChecklist(cl)}`).join('')}`
+	}
+
+	//TODO setup filters
+	// var includeLabels = true
+	// var includeDueDate = true
+	// var includeCheckLists = true
+	// var includeActivity = true
+	// var includeComments	 = true
+
+	var includeLabels = false
+	var includeDueDate = false
+	var includeCheckLists = true
+	var includeActivity = false
+	var includeComments	 = false
+
+	const markup = `
+	 <style>
+		 .outer {
+			width: 200px;
+			margin: 0 auto;
+			background-color: yellow;
+		}
+
+		.inner {
+			margin-left: 50px;
+		}
+	 </style>
+	 <div class="card">
+	    <b>
+	    ${card.title}
+	    </b>
+	    ${card.description != undefined && card.description != null ? `<div class='inner'>${card.description}</div>` : '<br>'}
+	    
+	    ${includeLabels ? `${indent}<b>Labels: </b><p class="labels">${indent.repeat(2)}${card.labels}` : ''}
+	    ${includeLabels ? `</p>` : ''}
+	    ${includeDueDate ? `${indent}<b>Due date: </b><p class="dueDate">${indent.repeat(2)}${card.dueDate}` : ''}
+	    ${includeDueDate ? `</p>` : ''}
+
+		${includeComments ? `${indent}<b>Comments: </b><p class="comments">` : ''}
+		${includeComments ? `${card.comments.map(comment => `${formatComment(comment)}<br>`).join('')}` : ''}
+	    ${includeComments ? `</p>` : ''}
+
+	    ${includeActivity ? `${indent}<b>Activity history: </b><p class="activity">` : ''}
+		${includeActivity ? `${card.activityHistory.map(act => `${formatActivity(act)}<br>`).join('')}` : ''}
+	    ${includeActivity ? `</p>` : ''}
+
+	    ${includeCheckLists && card.checklists.length > 0 ? `${indent}<b>Checklists: </b><br>${formatChecklists(card.checklists)}` : ''}
+	 </div>
+	`;
+	//TODO not enough to check card.checklists.length above: If all checklist has 0 items, we can also omit the Checklists: part
+	//TODO Only print "Checklists:" if there are more than 1 checklist
+
+	return markup
+}
+
 function getAllDataOfCardsInList(listName) {
+	function getAllData(card, globalIdx) {
+		// console.log("that ", that)
+		console.log("card ", card)
+		console.log("idx ", globalIdx)
+		setTimeout(function() { 
+        	console.log("Saving all data from card: " + getCardTitle(card))
+        	getAllCardData(card, globalIdx, numberOfCards)
+        }, 3000 * globalIdx);
+	}
+
 	var resultMap = getCardsOfList(listName);
 
 	//Could be in this format
@@ -104,31 +245,34 @@ function getAllDataOfCardsInList(listName) {
 	// 0: {"t1" => Array(card1, card2)}
 	// 1: {"t2" => Array(card1, card2, card3)}
 
-
-	//TODO save all data to localstorage: https://stackoverflow.com/questions/28918232/how-do-i-persist-a-es6-map-in-localstorage-or-elsewhere
-	localStorage.setItem("cardQuery", "")
 	var cardsByName = resultMap.get(listName).get("cards")
+	console.log("***resultMap: ", resultMap.get(listName))
+	
+	var cards = []
+	cardsByName.forEach((value, key) => Array.prototype.push.apply(cards, value))
+	var numberOfCards = cards.length
 
-	var numberOfCards = Array.from(cardsByName.values()).map()
+	if (resultMap.get(listName).get("num_of_cards") != numberOfCards) {
+		throw "ResultMap contains " + resultMap.get(listName).get("num_of_cards") + 
+		" cards, but final array has a different size: " + numberOfCards
+	}
 
 	//TODO store number of items and pass to getAllCardData
 	var globalIdx = 0
 	for (var cardName of cardsByName.keys()) {
+		//TODOs
+		// if (globalIdx == 5) {
+		// 	return;
+		// }
 		var cards = cardsByName.get(cardName)
 		cards.forEach(function(card, idx) {
-			// console.log("that ", that)
-			console.log("card ", card)
-			console.log("idx ", globalIdx)
-			setTimeout(function() { 
-	        	console.log("Saving all data from card: " + getCardTitle(card))
-	        	getAllCardData(card, globalIdx)
-	        }, 3000 * globalIdx);
+			getAllData(card, globalIdx)
 	    	globalIdx++
 		})
 	}
 }
 
-function getAllCardData(JQCard, globalIdx) {
+function getAllCardData(JQCard, globalIdx, numberOfCards) {
 	//Saves the following data for a card:
 	// - Labels
 	// - Description
@@ -189,17 +333,21 @@ function getAllCardData(JQCard, globalIdx) {
 			//TODO this must have been equivalent, but did not work
 			//var labels = JQCard.find(".card-label span").map(e => $(e.text()).get()
 			var labels = cardOverlay.find(".card-label span").map(function(){ return $(this).text(); }).get();
-			var description = cardOverlay.find(".js-desc p").html()
+			var description = cardOverlay.find(".js-desc").html()
 			
 			//Save checklists
 			var checklistObjects = []
 			var checklists = cardOverlay.find(".checklist")
+			console.log("Found " + checklists.length + " checklists for card: " + title)
 			checklists.each((i, cl) => {
 				var checklistObject = new Object()
 				checklistObject.title = $(cl).find('.checklist-title h3').map(function(){ return $(this).text(); }).get()[0]
 				checklistObject.items = []
 				
-				$(cl).find(".checklist-item").each(
+				var checklistItems = $(cl).find(".checklist-item")
+				console.log("Found " + checklistItems.length + " checklist items for checklist: " + checklistObject.title + " for card: " + title)
+
+				checklistItems.each(
 					(i, clItem) => checklistObject.items.push(
 						{ "value": $(clItem).find(".checklist-item-details-text").text(),
 						  "checked": $(clItem).hasClass("checklist-item-state-complete")
@@ -259,6 +407,7 @@ function getAllCardData(JQCard, globalIdx) {
 			cardObject.checklists = checklistObjects
 			cardObject.activityHistory = historyObjects
 			cardObject.comments = commentObjects
+			cardObject.justTitle = (checklistObjects.length == 0) && (description == null || description == undefined)
 
 			closeCardButton.trigger("click")
 
@@ -269,12 +418,18 @@ function getAllCardData(JQCard, globalIdx) {
 
     promise.then(function(cardObj) {
     	console.log("RESULT OF PROMISE: ", cardObj)
+    	//TODO calculate total time took to download all cards
+    	console.log("Finished downloading card data: " + _formatDate())
     	GLOBALRESULT.push(cardObj)
-    	//TODO checkpointing (save on every 20 elements)
-    	if (globalIdx == 236) {
-    		window.localStorage.setItem('globalresult') = JSON.stringify(GLOBALRESULT);
-    		//READ: map = new Map(JSON.parse(localStorage.globalresult));
+    	console.log("***Global idx: ", globalIdx)
+		console.log("***Number of cards: ", numberOfCards)
+    	if (globalIdx % 20 == 0) {
+    		//TODO save all data to localstorage: https://stackoverflow.com/questions/28918232/how-do-i-persist-a-es6-map-in-localstorage-or-elsewhere
+    		console.log("Saving another chunk of items (20) to localStorage. Index: " + globalIdx)
+    		console.log("DATA: ", JSON.stringify(GLOBALRESULT))
+    		window.localStorage.setItem('globalresult', JSON.stringify(GLOBALRESULT));
     	}
+    	
 		// console.log("RESULT OF PROMISE: ", getCardTitle(JQCard))
 		return JQCard
     }).catch((reason) => {
