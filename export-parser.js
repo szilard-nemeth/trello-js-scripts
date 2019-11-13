@@ -79,6 +79,7 @@ function convertToCardObjects(cards, checklists, lists) {
 
 		cardObject.lastActivity = c['dateLastActivity']
 
+		//TODO store archived boolean flag to card
 		// cardObject.activityHistory = historyObjects
 		// cardObject.comments = commentObjects
 		console.log("Converted card: ", cardObject)
