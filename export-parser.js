@@ -206,19 +206,24 @@ function exportBoard() {
 	(async () => {
 		var url = clickExportButton()
 		let response = await fetch(url);
-		let json = await response.json();
-		console.log("Received json: ", json)
-		var convertedJson = convertAllCardsToJson(json)
+		let trelloJson = await response.json();
+		console.log("Received json: ", trelloJson)
+		var convertedJson = convertAllCardsToJson(trelloJson)
 		//TODO download convertedJson as file
 		var convertedJsonObj = JSON.parse(convertedJson)
 		// console.log("CONVERTED JSON object: ", convertedJsonObj)
+
 		var html = parseConvertedCardsJsonAndExportHtml(convertedJsonObj)
-		//TODO download html as file
-		download("hello.txt", html);
+		var htmlFileName = "trello-export-" + document.title.split('|')[0] + "_" + _formatDate() + ".html"
+		download(htmlFileName, html);
+
+		var jsonFileName = "trello-export-" + document.title.split('|')[0] + "_" + _formatDate() + "-converted.json"
+		download(jsonFileName, convertedJson);
+
+		var trelloJsonFileName = "trello-export-" + document.title.split('|')[0] + "_" + _formatDate() + "-trello.json"
+		download(trelloJsonFileName, JSON.stringify(trelloJson));
 		}
 	)()
-
-	
 }
 
 // $(document).ready(function () {

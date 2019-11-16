@@ -30,11 +30,16 @@ jQuery.fn.justtext = function() {
 
 };
 
-function _formatDate() {
+function _formatDate(short=false) {
 	var d = new Date();
 
-	return d.getDate()  + "-" + (d.getMonth()+1) + "-" + d.getFullYear() + " " +
-	d.getHours() + ":" + d.getMinutes() + ":" + d.getSeconds();
+	if (!short) {
+		return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate() + " " +
+			d.getHours() + ":" + d.getMinutes() + ":" + d.getSeconds();	
+	} else {
+		return d.getFullYear().toString() + (d.getMonth()+1).toString() + d.getDate().toString() + "_" +
+			d.getHours().toString() + d.getMinutes().toString() + d.getSeconds().toString();	
+	}
 }
 
 //--helper functions
@@ -165,9 +170,9 @@ function formatCardsAsHtml(cards) {
 	//
 
 	var sortedCards = cards.sort(dynamicSortMultiple("-justTitle", "title"));
-	console.log("SORTED CARDS: ", sortedCards)
+	// console.log("SORTED CARDS: ", sortedCards)
 	sortedCards.forEach(card => html = html.concat(formatCardAsHtml(card).concat("<br><br>")))
-	console.log(html)
+	// console.log(html)
 	return html
 }
 
