@@ -7,17 +7,13 @@ function importJquery() {
 	document.head.appendChild(s); 
 }
 
-function loadCards() {
-	var json = $('body pre').html()
-	var jsonObj = JSON.parse(json)
-	var cards = jsonObj['cards']
+function loadCards(parsedExport) {
+	var cards = parsedExport['cards']
 	return cards
 }
 
-function loadChecklists() {
-	var json = $('body pre').html()
-	var jsonObj = JSON.parse(json)
-	var checklists = jsonObj['checklists']
+function loadChecklists(parsedExport) {
+	var checklists = parsedExport['checklists']
 
 	var mapOfChecklists = checklists.reduce(function(map, obj) {
     	map.set(obj.id, obj);
@@ -26,10 +22,8 @@ function loadChecklists() {
 	return mapOfChecklists
 }
 
-function loadLists() {
-	var json = $('body pre').html()
-	var jsonObj = JSON.parse(json)
-	var lists = jsonObj['lists']
+function loadLists(parsedExport) {
+	var lists = parsedExport['lists']
 
 	var mapOfLists = lists.reduce(function(map, obj) {
     	map.set(obj.id, obj);
@@ -141,19 +135,17 @@ function fetchParticularCard() {
 	return cardObj
 }
 
-function convertAllCardsToJson() {
+function convertAllCardsToJson(parsedExport) {
 	//Run these commands to convert all cards to json
-	var checklists = loadChecklists()
-	var lists = loadLists()
-	var cards = loadCards()
+	var checklists = loadChecklists(parsedExport)
+	var lists = loadLists(parsedExport)
+	var cards = loadCards(parsedExport)
 	var cardObjs = convertToCardObjects(cards, checklists, lists)
 	return JSON.stringify(strMapToObj(cardObjs))	
 }
 
-function parseConvertedCardsJsonAndExportHtml(listName) {
+function parseConvertedCardsJsonAndExportHtml(jsonObj, listName) {
 	//Run these to read back cards from converted json
-	var json = $('body pre').html()
-	var jsonObj = JSON.parse(json)
 	if (jsonObj == undefined) {
 		throw "JSON object can't be parsed from site! Please load an exported json of a trello board!"
 	}
@@ -183,9 +175,22 @@ function parseConvertedCardsJsonAndExportHtml(listName) {
 	    	}
 	    }
 	});
-
-	console.log(html)
+	return html
 }
+
+function download(filename, text) {
+  var element = document.createElement('a');
+  element.setAttribute('href', 'data:text/html;charset=utf-8,' + encodeURIComponent(text));
+  element.setAttribute('download', filename);
+
+  element.style.display = 'none';
+  document.body.appendChild(element);
+
+  element.click();
+
+  document.body.removeChild(element);
+}
+
 
 function clickExportButton() {
 	$("span:contains('Show Menu')").trigger('click')
@@ -193,16 +198,30 @@ function clickExportButton() {
 	$('.js-share').trigger('click')
 	// $('.js-export-json').trigger('click')
 	var boardExportLink = $('.js-export-json').attr('href')
-	location.href = boardExportLink
+	// location.href = boardExportLink
+	return boardExportLink
 }
 
+function exportBoard() {
+	(async () => {
+		var url = clickExportButton()
+		let response = await fetch(url);
+		let json = await response.json();
+		console.log("Received json: ", json)
+		var convertedJson = convertAllCardsToJson(json)
+		//TODO download convertedJson as file
+		var convertedJsonObj = JSON.parse(convertedJson)
+		// console.log("CONVERTED JSON object: ", convertedJsonObj)
+		var html = parseConvertedCardsJsonAndExportHtml(convertedJsonObj)
+		//TODO download html as file
+		download("hello.txt", html);
+		}
+	)()
 
+	
+}
 
-importJquery()
-
-clickExportButton()
-var convertedJson = convertAllCardsToJson()
-console.log("CONVERTED JSON: ", convertedJson)
-var html = parseConvertedCardsJsonAndExportHtml(convertedJson)
-console.log("Board as HTML: ", html)
-// parseConvertedCardsJsonAndExportHtml("ARCHIVED")
+// $(document).ready(function () {
+ //  		alert('Page has finished loading');
+	// });
+// parseConvertedCardsJsonAndExportHtml(convertedJson, "ARCHIVED")	
