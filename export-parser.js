@@ -48,9 +48,9 @@ function convertToCardObjects(cards, checklists, lists) {
 	if (!Array.isArray(cards)) {
 		cards = new Array(cards)
 	}
-	console.log("Received cards: ", cards)
+	// console.log("Received cards: ", cards)
 	cards = cards.map(c => {
-		console.log("Converting card: ", c)
+		// console.log("Converting card: ", c)
 		var cardObject = new Object();
 		cardObject.title = c['name']
 		cardObject.description = c['desc'] //TODO format as html
@@ -82,7 +82,7 @@ function convertToCardObjects(cards, checklists, lists) {
 		//TODO store archived boolean flag to card
 		// cardObject.activityHistory = historyObjects
 		// cardObject.comments = commentObjects
-		console.log("Converted card: ", cardObject)
+		// console.log("Converted card: ", cardObject)
 		return cardObject
 	})
 
@@ -117,25 +117,64 @@ function convertToCardObjects(cards, checklists, lists) {
 	return cardResultMap
 }
 
+function strMapToObj(strMap) {
+  let obj = Object.create(null);
+  for (let [k,v] of strMap) {
+    // We don’t escape the key '__proto__'
+    // which can cause problems on older engines
+    obj[k] = v;
+  }
+  return obj;
+}
+
+
+//FINAL FUNCTIONS
+function fetchParticularCard() {
+	//Run these commands to fetch a particular card
+	var checklists = loadChecklists()
+	var lists = loadLists()
+	var cards = findCardsByName('Drive: kepeket megosztani: Apa/Viola')
+	// var cards = findCardsByName('testcard')
+	var cardObj = convertToCardObjects(cards[0], checklists, lists)
+	// cardObj
+	// cardObj[0].checklists[0].items
+	return cardObj
+}
+
+function convertAllCardsToJson() {
+	//Run these commands to convert all cards to json
+	var checklists = loadChecklists()
+	var lists = loadLists()
+	var cards = loadCards()
+	var cardObjs = convertToCardObjects(cards, checklists, lists)
+	return JSON.stringify(strMapToObj(cardObjs))	
+}
+
+function parseConvertedCardsJson() {
+	//Run these to read back cards from converted json
+	var json = $('body pre').html()
+	var jsonObj = JSON.parse(json)
+	//TODO group by last modified data -- lastActivity: "2019-11-02T18:20:42.970Z
+
+
+	Object.keys(jsonObj).forEach(function(k){
+	    // console.log(k + ' - ' + jsonObj[k]);
+	    //THIS IS FROM THE OTHER FILE
+	    // var cards = getAllDataOfCardsInList(k);
+	    var cards = jsonObj[k]
+	 //    cards.sort(function(a,b){
+	 //    	// console.log("SORT a: ", a)
+	 //    	// console.log("SORT b: ", b)
+	 //    	return new Date(b.lastActivity) - new Date(a.lastActivity);
+		// });
+		cards.forEach(c => console.log(c.lastActivity))
+	    // console.log("cards: ", cards)
+	    if (cards != undefined && k === "DONE") {
+	    	html = formatCardsAsHtml(cards)
+			console.log(html)
+	    }
+	});
+}
+
 
 importJquery()
-
-//Run these commands to fetch a particular card
-var checklists = loadChecklists()
-var lists = loadLists()
-var cards = findCardsByName('Drive: kepeket megosztani: Apa/Viola')
-// var cards = findCardsByName('testcard')
-var cardObj = convertToCardObjects(cards[0], checklists, lists)
-cardObj
-cardObj[0].checklists[0].items
-
-//Run these commands to convert all cards
-var checklists = loadChecklists()
-var lists = loadLists()
-var cards = loadCards()
-var cardObjs = convertToCardObjects(cards, checklists, lists)
-cardObjs
-
-
-
-
