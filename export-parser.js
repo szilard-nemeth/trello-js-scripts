@@ -187,9 +187,22 @@ function parseConvertedCardsJsonAndExportHtml(listName) {
 	console.log(html)
 }
 
+function clickExportButton() {
+	$("span:contains('Show Menu')").trigger('click')
+	$('.js-open-more').trigger('click')
+	$('.js-share').trigger('click')
+	// $('.js-export-json').trigger('click')
+	var boardExportLink = $('.js-export-json').attr('href')
+	location.href = boardExportLink
+}
+
+
 
 importJquery()
 
-// convertAllCardsToJson()
-// parseConvertedCardsJsonAndExportHtml()
+clickExportButton()
+var convertedJson = convertAllCardsToJson()
+console.log("CONVERTED JSON: ", convertedJson)
+var html = parseConvertedCardsJsonAndExportHtml(convertedJson)
+console.log("Board as HTML: ", html)
 // parseConvertedCardsJsonAndExportHtml("ARCHIVED")
