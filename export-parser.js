@@ -150,13 +150,17 @@ function convertAllCardsToJson() {
 	return JSON.stringify(strMapToObj(cardObjs))	
 }
 
-function parseConvertedCardsJson() {
+function parseConvertedCardsJsonAndExportHtml(listName) {
 	//Run these to read back cards from converted json
 	var json = $('body pre').html()
 	var jsonObj = JSON.parse(json)
+	if (jsonObj == undefined) {
+		throw "JSON object can't be parsed from site! Please load an exported json of a trello board!"
+	}
 	//TODO group by last modified data -- lastActivity: "2019-11-02T18:20:42.970Z
 
 
+	var html = ""
 	Object.keys(jsonObj).forEach(function(k){
 	    // console.log(k + ' - ' + jsonObj[k]);
 	    //THIS IS FROM THE OTHER FILE
@@ -167,14 +171,25 @@ function parseConvertedCardsJson() {
 	 //    	// console.log("SORT b: ", b)
 	 //    	return new Date(b.lastActivity) - new Date(a.lastActivity);
 		// });
-		cards.forEach(c => console.log(c.lastActivity))
+		// cards.forEach(c => console.log(c.lastActivity))
 	    // console.log("cards: ", cards)
-	    if (cards != undefined && k === "DONE") {
-	    	html = formatCardsAsHtml(cards)
-			console.log(html)
+	    if (cards != undefined) {
+	    	if (listName != undefined && k === listName) {
+	    		html = html.concat("<h1>" + k + "(" + cards.length + ")" + "</h1><br><br>")
+		    	html = html.concat(formatCardsAsHtml(cards))
+	    	} else {
+		    	html = html.concat("<h1>" + k + "(" + cards.length + ")" + "</h1><br><br>")
+		    	html = html.concat(formatCardsAsHtml(cards))	
+	    	}
 	    }
 	});
+
+	console.log(html)
 }
 
 
 importJquery()
+
+// convertAllCardsToJson()
+// parseConvertedCardsJsonAndExportHtml()
+// parseConvertedCardsJsonAndExportHtml("ARCHIVED")
