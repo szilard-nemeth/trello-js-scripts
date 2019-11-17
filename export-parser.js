@@ -222,6 +222,9 @@ function exportBoard() {
 
 		var trelloJsonFileName = "trello-export-" + document.title.split('|')[0] + "_" + _formatDate() + "-trello.json"
 		download(trelloJsonFileName, JSON.stringify(trelloJson));
+
+		//close side menu
+		$('.board-menu-header-close-button').click()
 		}
 	)()
 }
