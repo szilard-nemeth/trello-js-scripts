@@ -32,10 +32,15 @@ function loadLists(parsedExport) {
 	return mapOfLists
 }
 
-function findCardsByName(name) {
-	var cards = loadCards()
+function findCardsByName(name, parsedExport) {
+	var cards = loadCards(parsedExport)
 	var filteredCards = $.grep(cards, function(obj){return obj.name === name;});
 	return filteredCards
+}
+
+function formatDescription(markdown) {
+	var converter = new showdown.Converter()
+	return converter.makeHtml(markdown);
 }
 
 function convertToCardObjects(cards, checklists, lists) {
@@ -47,14 +52,15 @@ function convertToCardObjects(cards, checklists, lists) {
 		// console.log("Converting card: ", c)
 		var cardObject = new Object();
 		cardObject.title = c['name']
-		cardObject.description = c['desc'] //TODO format as html
+		cardObject.description = formatDescription(c['desc'])
 		cardObject.labels = c['labels'].map(c => c.name)
 		cardObject.listId = c['idList']
 
 		var checklistIds = c['idChecklists']
 		if (checklistIds != null && checklistIds != undefined) {
 			cardObject.checklists = checklistIds.map(clId => {
-				var cl = checklists.get(clId); 
+				var cl = checklists.get(clId);
+				console.log("Found checklist: ", cl)
 				return { "title": cl.name, "items": cl.checkItems }
 			})
 			console.log("Having " + cardObject.checklists.length + " checklists")
@@ -123,12 +129,18 @@ function strMapToObj(strMap) {
 
 
 //FINAL FUNCTIONS
-function fetchParticularCard() {
+function getCardFromExport(name, parsedExport) {
 	//Run these commands to fetch a particular card
-	var checklists = loadChecklists()
-	var lists = loadLists()
-	var cards = findCardsByName('Drive: kepeket megosztani: Apa/Viola')
+	var checklists = loadChecklists(parsedExport)
+	var lists = loadLists(parsedExport)
+	var cards = findCardsByName(name, parsedExport)
 	// var cards = findCardsByName('testcard')
+	//TODO return all cards if found more than 1
+
+	if (cards.length == 0) {
+		throw "No card found with name: " + name
+	}
+	console.log("Card from export: ", cards[0])
 	var cardObj = convertToCardObjects(cards[0], checklists, lists)
 	// cardObj
 	// cardObj[0].checklists[0].items
@@ -209,9 +221,7 @@ function exportBoard() {
 		let trelloJson = await response.json();
 		console.log("Received json: ", trelloJson)
 		var convertedJson = convertAllCardsToJson(trelloJson)
-		//TODO download convertedJson as file
 		var convertedJsonObj = JSON.parse(convertedJson)
-		// console.log("CONVERTED JSON object: ", convertedJsonObj)
 
 		var html = parseConvertedCardsJsonAndExportHtml(convertedJsonObj)
 		var htmlFileName = "trello-export-" + document.title.split('|')[0] + "_" + _formatDate() + ".html"
@@ -223,6 +233,26 @@ function exportBoard() {
 		var trelloJsonFileName = "trello-export-" + document.title.split('|')[0] + "_" + _formatDate() + "-trello.json"
 		download(trelloJsonFileName, JSON.stringify(trelloJson));
 
+		//close side menu
+		$('.board-menu-header-close-button').click()
+		}
+	)()
+}
+
+function getCardData(name) {
+	if (name === undefined || name == "") {
+		throw "Name should not be undefined or empty!"
+	}
+	(async () => {
+		var url = clickExportButton()
+		let response = await fetch(url);
+		let trelloJson = await response.json();
+		console.log("Received json: ", trelloJson)
+		// var convertedJson = convertAllCardsToJson(trelloJson)
+		// var convertedJsonObj = JSON.parse(convertedJson)
+		var card = getCardFromExport(name, trelloJson)
+		console.log("Found card: ", card)
+		
 		//close side menu
 		$('.board-menu-header-close-button').click()
 		}
