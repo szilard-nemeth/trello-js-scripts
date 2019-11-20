@@ -190,17 +190,36 @@ function parseConvertedCardsJsonAndExportHtml(jsonObj, listName) {
 	return html
 }
 
-function download(filename, text) {
-  var element = document.createElement('a');
-  element.setAttribute('href', 'data:text/html;charset=utf-8,' + encodeURIComponent(text));
-  element.setAttribute('download', filename);
+function download(filename, text, type="html") {
+	var dataType;
+	var simpleType;
+	if (type === "html") {
+		dataType = "data:text/html;charset=utf-8,"
+		simpleType = "text/html"
+	} else if (type === "json") {
+		dataType = "data:text/json;charset=utf-8,"
+		simpleType = "application/json"
+	} else {
+		throw "Unknown data type: " + type
+	}
 
-  element.style.display = 'none';
-  document.body.appendChild(element);
+	var element = document.createElement('a');
 
-  element.click();
+	//Workaround for Chrome's encodeURIComponent limit (for bigger data)
+	//See: https://www.reddit.com/r/webdev/comments/7bu0la/google_chrome_download_failed_network_error_when/dpktbap/
+	var data = new Blob([text], { type: simpleType });
+    var objUrl = URL.createObjectURL(data);
+	// element.setAttribute('href', dataType + encodeURIComponent(text));	
+    element.setAttribute('href', objUrl);
 
-  document.body.removeChild(element);
+	element.setAttribute('download', filename);
+
+	element.style.display = 'none';
+	document.body.appendChild(element);
+
+	element.click();
+
+	document.body.removeChild(element);
 }
 
 
@@ -231,7 +250,7 @@ function exportBoard() {
 		download(jsonFileName, convertedJson);
 
 		var trelloJsonFileName = "trello-export-" + document.title.split('|')[0] + "_" + _formatDate() + "-trello.json"
-		download(trelloJsonFileName, JSON.stringify(trelloJson));
+		download(trelloJsonFileName, JSON.stringify(trelloJson), type='json');
 
 		//close side menu
 		$('.board-menu-header-close-button').click()
